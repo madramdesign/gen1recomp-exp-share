@@ -6,19 +6,25 @@ Always-on party experience for [gen1recomp](https://github.com/bryanthaboi/gen1r
 
 | Mode | Behavior |
 | --- | --- |
-| **MODERN** (default) | Every living party Pokémon gets **full undivided EXP** (Gen 6+ Exp Share style) |
-| **CLASSIC** | Gen 1 **EXP.ALL** math without needing the item in the bag |
-| **OFF** | Vanilla (use the Route 15 Aide item) |
+| **MODERN** | Full undivided EXP to every living party Pokémon (Gen 6+). Needs a build with `BattleState.awardExp` / `battle.exp_award` (newer than 0.1.38). |
+| **CLASSIC** | Gen 1 **EXP.ALL** math without needing the item |
+| **OFF** | Vanilla |
 
-**EXP MESSAGES:** FIGHTERS (default) / EVERYONE / SILENT — controls who gets the “gained EXP” text boxes.
+On **0.1.38** (and other builds without `awardExp`), the mod forces classic EXP.ALL so sharing still works — you should see “with EXP.ALL” messages for the whole party.
+
+**EXP MESSAGES:** EVERYONE (default) / FIGHTERS / SILENT
 
 ## Install
 
-1. Download the release zip (`exp_share-1.0.0.zip`) or copy this folder to `mods/exp_share/`
+1. Download the release zip or copy this folder to `mods/exp_share/`
 2. Enable in **F10** / Start → Mods
-3. Restart if needed
+3. **Fully quit and relaunch** the game (hooks install on `game.ready`)
 
-Uses the engine `battle.exp_award` hook (documented for exactly this kind of split).
+## How to verify
+
+1. Put 2+ Pokémon in the party (bench can be low level)
+2. Win a wild battle with only the lead fighting
+3. You should get EXP text for **bench** mons too (“with EXP.ALL” on older builds)
 
 ## Not the same as
 
