@@ -9,7 +9,6 @@ return function(mod)
   local Experience = require("src.battle.Experience")
   local Runtime = require("src.mods.Runtime")
   local Strings = require("src.core.Strings")
-  local StatBox = require("src.ui.StatBox")
 
   mod.options:define({
     {
@@ -113,7 +112,9 @@ return function(mod)
         battle:sayNext(Strings("%s grew\nto level %d!", name, lv))
         battle:uiNext(function()
           require("src.core.Sound").play(game.data, "Level_Up")
-          return StatBox.new(game, mon)
+          -- StatBox is defined inside BattleState.lua (not a standalone module)
+          local BattleState = require("src.battle.BattleState")
+          return BattleState.StatBox.new(game, mon)
         end)
         if battle.player and mon == battle.player.mon then
           battle:drainNext()
