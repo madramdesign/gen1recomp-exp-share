@@ -1,9 +1,10 @@
 -- Exp Share: always-on party experience.
 --
--- Current engines: BattleState.awardExp + optional battle.exp_award hook.
+-- Current engines (awardExp + battle.exp_award, ~0.1.39+ / 0.1.75):
+--   wrap the official hook and reuse ctx.applyShare so level-up HUD,
+--   Cont text, and catch-exp stay in sync with the engine.
 -- Older engines (0.1.38): EXP is inline in enemyMonFainted with no hook —
--- force the EXP.ALL inventory check (classic Gen 1 share math). True MODERN
--- undivided shares need a build that factors awardExp (0.1.39+ / recent).
+--   force the EXP.ALL inventory check (classic Gen 1 share math).
 
 return function(mod)
   local Experience = require("src.battle.Experience")
@@ -21,7 +22,7 @@ return function(mod)
         { "CLASSIC", "classic" },
         { "OFF", "off" },
       },
-      description = "MODERN: full EXP to every living party mon (needs newer gen1recomp). CLASSIC: Gen 1 EXP.ALL math. On older builds both use EXP.ALL. OFF: vanilla.",
+      description = "MODERN: full EXP to every living party mon (needs gen1recomp with battle.exp_award). CLASSIC: Gen 1 EXP.ALL math. On 0.1.38 both use EXP.ALL. OFF: vanilla.",
     },
     {
       key = "announce",
@@ -73,8 +74,9 @@ return function(mod)
     return participants, alive
   end
 
+  -- Fallback applyShare for engines that expose awardExp but not the hook
+  -- context (should be rare). Prefer ctx.applyShare from battle.exp_award.
   local function makeApplyShare(battle, shareFn)
-    -- shareFn(mon, split, announce) — engine's ctx.applyShare when present
     if shareFn then
       return function(mon, split, announce)
         return shareFn(mon, split, announce)
@@ -112,7 +114,6 @@ return function(mod)
         battle:sayNext(Strings("%s grew\nto level %d!", name, lv))
         battle:uiNext(function()
           require("src.core.Sound").play(game.data, "Level_Up")
-          -- StatBox is defined inside BattleState.lua (not a standalone module)
           local BattleState = require("src.battle.BattleState")
           return BattleState.StatBox.new(game, mon)
         end)
@@ -136,7 +137,6 @@ return function(mod)
         apply(mon, 1, ann and true or false)
       end
     end
-    battle.participants = {}
   end
 
   local function awardClassic(battle, participants, alive, shareFn)
@@ -155,11 +155,12 @@ return function(mod)
         apply(mon, nPart * #party * 2, ann and "expAll" or false)
       end
     end
-    battle.participants = {}
   end
 
-  local function runAward(battle, shareFn)
-    local participants, alive = countParticipants(battle)
+  local function runAward(battle, shareFn, participants, alive)
+    if not participants then
+      participants, alive = countParticipants(battle)
+    end
     if getMode() == "classic" then
       awardClassic(battle, participants, alive, shareFn)
     else
@@ -167,11 +168,12 @@ return function(mod)
     end
   end
 
+  -- Preferred path on current engines: awardExp always calls this hook.
   mod.hooks:wrap("battle.exp_award", function(next, ctx)
     if getMode() == "off" or not ctx or not ctx.battle then
       return next(ctx)
     end
-    runAward(ctx.battle, ctx.applyShare)
+    runAward(ctx.battle, ctx.applyShare, ctx.participants, ctx.alive)
   end)
 
   local function withForcedExpAll(battle, fn)
@@ -179,11 +181,7 @@ return function(mod)
     local had = inv.EXP_ALL
     inv.EXP_ALL = math.max(1, had or 0)
     local ok, err = pcall(fn)
-    if not had or had == 0 then
-      inv.EXP_ALL = had
-    else
-      inv.EXP_ALL = had
-    end
+    inv.EXP_ALL = had
     if not ok then error(err, 0) end
   end
 
@@ -193,15 +191,11 @@ return function(mod)
 
     local BattleState = require("src.battle.BattleState")
 
+    -- Engines with awardExp already invoke battle.exp_award above.
+    -- Do not monkey-patch awardExp — that would bypass the engine's
+    -- applyShare (level-up HUD / Cont text / catch-exp fixes).
     if BattleState.awardExp then
-      local vanillaAward = BattleState.awardExp
-      BattleState.awardExp = function(self)
-        if getMode() == "off" then
-          return vanillaAward(self)
-        end
-        runAward(self, nil)
-      end
-      mod.log:info("Exp Share ready (awardExp) — mode=%s", getMode())
+      mod.log:info("Exp Share ready (battle.exp_award) — mode=%s", getMode())
       return
     end
 

@@ -1,7 +1,7 @@
 {
   "id": "exp_share",
   "name": "Exp Share",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "api": 2,
   "entry": "main.lua",
   "profile": "content",
@@ -10,6 +10,6 @@
   "priority": 40,
   "permissions": [],
   "affects_link": false,
-  "description": "Always-on party Exp Share. Modern undivided EXP on newer gen1recomp; classic EXP.ALL on older builds (0.1.38).",
+  "description": "Always-on party Exp Share. Uses battle.exp_award + engine applyShare on current gen1recomp; classic EXP.ALL fallback on 0.1.38.",
   "github": "madramdesign/gen1recomp-exp-share"
 }
